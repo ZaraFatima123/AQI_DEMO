@@ -1,4 +1,4 @@
-const apiKey = '';  // Replace with your OpenRouteService API key
+const apiKey = '8ed64ac73060ac2cb1a0ca062a998374';  // Replace with your OpenRouteService API key
 const map = L.map('map').setView([28.6139, 77.2090], 12);  // Centered on Delhi
 
 // Adding OpenStreetMap tiles
