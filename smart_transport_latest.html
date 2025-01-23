@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartRoute</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.fullscreen/leaflet.fullscreen.css" />
+    <style>
+        body {
+            background: linear-gradient(to right bottom, #00c6ff, #0072ff, #4b6cb7, #182848);
+            color: #fff;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .form-control, .form-select {
+            background-color: rgba(255, 255, 255, 0.7);
+            color: #333;
+        }
+
+        #find-routes-btn {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+
+        #map {
+            height: 600px; /* Increase height */
+            width: 100%; /* Full width */
+        }
+
+        #route-summary {
+            color: #fff;
+        }
+             /* Navbar styling */
+             .navbar {
+            background-image: linear-gradient(to right bottom, #a3c8ff, #7ab1ff, #85b7d8, #4f678d); /* Lighter version of the original gradient */
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: white;
+        }
+
+        .navbar-nav .nav-link {
+            color: white !important;
+            font-weight: 600;
+            margin-left: 15px;
+        }
+
+        .navbar-nav .nav-link:hover {
+            color: #f1f1f1 !important;
+        }
+
+        .navbar-toggler-icon {
+            background-color: white;
+        }
+
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Smart EcoPath</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">Home</a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Air Pollution</a>
+                    </li>
+
+                    <!-- <li class="nav-item">
+                        <a class="nav-link" href="quiz.html">Quiz</a>
+                    </li> -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="smart_transport_latest.html">Smart transport</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="About.html">About</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    </style>
+    <!-- <link rel="stylesheet" href="style.css"> Optional external CSS -->
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">SmartRoute</h1>
+        <div class="mb-3">
+            <label for="location-input" class="form-label">Enter your location (Latitude, Longitude):</label>
+            <input type="text" class="form-control" id="location-input" placeholder="e.g., 28.6139, 77.2090">
+        </div>
+        <div class="mb-3">
+            <label for="destination-input" class="form-label">Enter destination location (Latitude, Longitude):</label>
+            <input type="text" class="form-control" id="destination-input" placeholder="e.g., 28.7041, 77.1025">
+        </div>
+        <button id="find-routes-btn" class="btn btn-primary">Find Route</button>
+        <div id="route-summary" class="mt-3"></div>
+        <div id="map" class="mt-4"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.fullscreen/leaflet.fullscreen.js"></script>
+    <script src="smart_javascript.js"></script>
+
+    <script>
+        // Initialize Map
+        var map = L.map('map', {
+            fullscreenControl: true,  // Enable fullscreen control
+            fullscreenControlOptions: {
+                position: 'topleft'  // You can change the position here
+            }
+        }).setView([28.6139, 77.2090], 13);
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        document.getElementById('find-routes-btn').addEventListener('click', function () {
+            const startLocation = document.getElementById('location-input').value.split(',');
+            const endLocation = document.getElementById('destination-input').value.split(',');
+
+            if (startLocation.length == 2 && endLocation.length == 2) {
+                const startLat = parseFloat(startLocation[0].trim());
+                const startLon = parseFloat(startLocation[1].trim());
+                const endLat = parseFloat(endLocation[0].trim());
+                const endLon = parseFloat(endLocation[1].trim());
+
+                // Fetch route data using OpenRouteService API
+                fetch(`https://api.openrouteservice.org/v2/directions/driving-car?api_key=5b3ce3597851110001cf624804acb333d67c4cef8d421b8c0c543346&start=${startLon},${startLat}&end=${endLon},${endLat}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const coordinates = data.features[0].geometry.coordinates;
+                        const distance = (data.features[0].properties.segments[0].distance / 1000).toFixed(1);
+                        const duration = (data.features[0].properties.segments[0].duration / 60).toFixed(1);
+
+                        // Update route summary
+                        document.getElementById('route-summary').innerHTML = `
+                            <strong>Total Distance:</strong> ${distance} km<br/>
+                            <strong>Estimated Time:</strong> ${duration} min
+                        `;
+
+                        // Add the route to the map
+                        const route = coordinates.map(coord => [coord[1], coord[0]]);
+                        L.polyline(route, { color: 'blue' }).addTo(map);
+                        map.fitBounds(route);
+
+                        // Fetch AQI for key waypoints (start, midpoint, end)
+                        const waypoints = [route[0], route[Math.floor(route.length / 2)], route[route.length - 1]]; // Start, midpoint, end
+                        waypoints.forEach((point, index) => {
+                            const lat = point[0];
+                            const lon = point[1];
+
+                            // Fetch AQI data from AQICN API for each waypoint
+                            fetch(`https://api.waqi.info/feed/geo:${lat};${lon}/?token=28644e2f12c93d1b427b539c4907f9db1a8cae14`)
+                                .then(aqiResponse => aqiResponse.json())
+                                .then(aqiData => {
+                                    if (aqiData.status === 'ok') {
+                                        const aqi = aqiData.data.aqi;
+                                        const city = aqiData.data.city.name;
+                                        const quality = getAQIDescription(aqi);
+
+                                        // Add AQI marker on the map for each waypoint
+                                        L.circleMarker([lat, lon], {
+                                            radius: 10,
+                                            color: getAQIColor(aqi),
+                                            fillColor: getAQIColor(aqi),
+                                            fillOpacity: 0.5
+                                        }).addTo(map).bindPopup(`
+                                            <b>${city}</b><br/>
+                                            AQI: ${aqi} (${quality})
+                                        `);
+
+                                        // Update the summary for each waypoint
+                                        document.getElementById('route-summary').innerHTML += `
+                                            <strong>Waypoint ${index + 1} (${city}):</strong> AQI ${aqi} (${quality})<br/>
+                                        `;
+                                    } else {
+                                        console.error(`Failed to fetch AQI for waypoint ${index + 1}`);
+                                    }
+                                });
+                        });
+                    })
+                    .catch(err => console.error('Error fetching route or AQI:', err));
+            } else {
+                alert('Please enter valid start and destination coordinates in "latitude,longitude" format.');
+            }
+        });
+
+        // Helper Function: Get AQI Quality Description
+        function getAQIDescription(aqi) {
+            if (aqi <= 50) return 'Good';
+            if (aqi <= 100) return 'Moderate';
+            if (aqi <= 150) return 'Unhealthy for Sensitive Groups';
+            if (aqi <= 200) return 'Unhealthy';
+            if (aqi <= 300) return 'Very Unhealthy';
+            return 'Hazardous';
+        }
+
+        // Helper Function: Get AQI Color
+        function getAQIColor(aqi) {
+            if (aqi <= 50) return 'green'; // Good
+            if (aqi <= 100) return 'yellow'; // Moderate
+            if (aqi <= 150) return 'orange'; // Unhealthy for Sensitive Groups
+            if (aqi <= 200) return 'red'; // Unhealthy
+            if (aqi <= 300) return 'purple'; // Very Unhealthy
+            return 'brown'; // Hazardous
+        }
+    </script>
+</body>
+</html>
